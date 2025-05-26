@@ -40,6 +40,12 @@
       <button type="submit" class="btn btn-primary w-100">Add Expense</button>
     </form>
 
+    <button id="voice-button" type="button" class="btn btn-outline-primary w-100 mt-2">
+        🎤 Hold to Speak
+      </button>
+      
+      
+
     <!-- Unsynced Local Expenses -->
     <h4>Unsynced Expenses (Local)</h4>
     <ul id="unsynced-list" class="list-group mb-2"></ul>
@@ -314,6 +320,129 @@
       toggleSyncButton();
       refreshSyncedExpenses();
     });
+
+    function startVoiceInput() {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("Sorry, your browser doesn't support speech recognition.");
+      return;
+    }
+
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.start();
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+      console.log("Voice input:", transcript);
+
+      // Example: "spent 3 dollars on food for lunch"
+      const amountMatch = transcript.match(/\d+(\.\d+)?/);
+      const categoryMatch = transcript.match(/on\s(\w+)/);
+      const description = transcript;
+
+      if (amountMatch) {
+        document.querySelector('input[name="amount"]').value = amountMatch[0];
+      }
+
+      if (categoryMatch) {
+        document.querySelector('input[name="category"]').value = categoryMatch[1];
+      }
+
+      document.querySelector('input[name="description"]').value = description;
+    };
+
+    recognition.onerror = function(event) {
+      alert("Voice input failed: " + event.error);
+    };
+  }
+  
+  let recognition;
+  let isRecognizing = false;
+
+  // Check browser support
+  if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      console.log("[INFO] Voice recognition started");
+    };
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+      console.log("[VOICE INPUT] Transcript:", transcript);
+
+      // Fallback: always fill description
+      document.querySelector('input[name="description"]').value = transcript;
+
+      // Extract amount
+      const amountMatch = transcript.match(/\d+(\.\d+)?/);
+      if (amountMatch) {
+        document.querySelector('input[name="amount"]').value = amountMatch[0];
+      } else {
+        console.warn("[WARN] Could not detect amount.");
+      }
+
+      // Extract category after the word 'on' (e.g., "on groceries")
+      const categoryMatch = transcript.match(/on\s+([a-z]+)/);
+      if (categoryMatch) {
+        document.querySelector('input[name="category"]').value = categoryMatch[1];
+      } else {
+        console.warn("[WARN] Could not detect category.");
+      }
+    };
+
+    recognition.onerror = function(event) {
+      console.error("[ERROR] Voice input failed:", event.error);
+    };
+
+    recognition.onend = () => {
+      console.log("[INFO] Voice recognition stopped");
+      isRecognizing = false;
+      voiceBtn.textContent = '🎤 Hold to Speak';
+    };
+  } else {
+    alert("Your browser doesn't support voice input.");
+  }
+
+  const voiceBtn = document.getElementById('voice-button');
+
+  // Push-to-talk: start on press
+  voiceBtn.addEventListener('mousedown', startListening);
+  voiceBtn.addEventListener('touchstart', startListening);
+
+  // Stop on release
+  voiceBtn.addEventListener('mouseup', stopListening);
+  voiceBtn.addEventListener('mouseleave', stopListening); // for safety
+  voiceBtn.addEventListener('touchend', stopListening);
+
+  function startListening(e) {
+    e.preventDefault();
+    if (recognition && !isRecognizing) {
+      recognition.start();
+      isRecognizing = true;
+      voiceBtn.textContent = '🎙️ Listening...';
+    }
+  }
+
+  function stopListening(e) {
+    e.preventDefault();
+    if (recognition && isRecognizing) {
+      recognition.stop();
+      isRecognizing = false;
+      voiceBtn.textContent = '🎤 Hold to Speak';
+      console.log("[DEBUG] Manual stop triggered");
+    }
+  }
+</script>
+
+  
+
+  
   </script>
 </body>
 </html>

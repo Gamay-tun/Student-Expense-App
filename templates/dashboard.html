@@ -361,11 +361,12 @@
   let recognition;
   let isRecognizing = false;
 
-  // Check browser support
+  const voiceBtn = document.getElementById('voice-button');
+
   if ('webkitSpeechRecognition' in window) {
     recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.interimResults = false;
+    recognition.interimResults = true;  // ✅ Enables faster parsing
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
@@ -373,35 +374,38 @@
     };
 
     recognition.onresult = function(event) {
-      const transcript = event.results[0][0].transcript.toLowerCase();
-      console.log("[VOICE INPUT] Transcript:", transcript);
+      let combinedTranscript = '';
 
-      // Fallback: always fill description
-      document.querySelector('input[name="description"]').value = transcript;
-
-      // Extract amount
-      const amountMatch = transcript.match(/\d+(\.\d+)?/);
-      if (amountMatch) {
-        document.querySelector('input[name="amount"]').value = amountMatch[0];
-      } else {
-        console.warn("[WARN] Could not detect amount.");
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        combinedTranscript += transcript + ' ';
       }
 
-      // Extract category after the word 'on' (e.g., "on groceries")
-      const categoryMatch = transcript.match(/on\s+([a-z]+)/);
+      combinedTranscript = combinedTranscript.trim().toLowerCase();
+      console.log("[VOICE INPUT] Live transcript:", combinedTranscript);
+
+      // Live-fill description
+      document.querySelector('input[name="description"]').value = combinedTranscript;
+
+      // Live-fill amount (any number)
+      const amountMatch = combinedTranscript.match(/\d+(\.\d+)?/);
+      if (amountMatch) {
+        document.querySelector('input[name="amount"]').value = amountMatch[0];
+      }
+
+      // Live-fill category (after "on ...")
+      const categoryMatch = combinedTranscript.match(/on\s+([a-z]+)/);
       if (categoryMatch) {
         document.querySelector('input[name="category"]').value = categoryMatch[1];
-      } else {
-        console.warn("[WARN] Could not detect category.");
       }
     };
 
     recognition.onerror = function(event) {
-      console.error("[ERROR] Voice input failed:", event.error);
+      console.error("[ERROR] Voice recognition:", event.error);
     };
 
     recognition.onend = () => {
-      console.log("[INFO] Voice recognition stopped");
+      console.log("[INFO] Voice recognition ended");
       isRecognizing = false;
       voiceBtn.textContent = '🎤 Hold to Speak';
     };
@@ -409,15 +413,11 @@
     alert("Your browser doesn't support voice input.");
   }
 
-  const voiceBtn = document.getElementById('voice-button');
-
-  // Push-to-talk: start on press
+  // Push-to-talk bindings
   voiceBtn.addEventListener('mousedown', startListening);
   voiceBtn.addEventListener('touchstart', startListening);
-
-  // Stop on release
   voiceBtn.addEventListener('mouseup', stopListening);
-  voiceBtn.addEventListener('mouseleave', stopListening); // for safety
+  voiceBtn.addEventListener('mouseleave', stopListening);
   voiceBtn.addEventListener('touchend', stopListening);
 
   function startListening(e) {

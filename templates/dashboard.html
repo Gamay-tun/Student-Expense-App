@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/pouchdb@7.3.1/dist/pouchdb.min.js"></script>
+</head>
+<body>
+  <h1>Welcome, {{ username }}!</h1>
+  <p><a href="/logout">Logout</a></p>
+
+  <div id="expense-app">
+    <!-- Add Expense Form -->
+    <h3>Add Expense</h3>
+    <form id="offline-form">
+      <input type="date" name="date" required><br>
+      <input type="number" step="0.01" name="amount" placeholder="Amount" required><br>
+      <input type="text" name="category" placeholder="Category" required><br>
+      <input type="text" name="description" placeholder="Description"><br>
+      <button type="submit">Add Expense</button>
+    </form>
+
+    <!-- Unsynced Local Expenses -->
+    <h3>Unsynced Expenses (Local)</h3>
+    <ul id="unsynced-list"></ul>
+    <button id="sync-btn" onclick="syncExpenses()">Sync to Server</button>
+    <p id="sync-status"></p>
+
+    <!-- Filters -->
+    <h3>Filter by Month and Year</h3>
+    <select id="filter-year">
+      <option value="">All Years</option>
+      <option value="2024">2024</option>
+      <option value="2025">2025</option>
+    </select>
+
+    <select id="filter-month">
+      <option value="">All Months</option>
+      <option value="01">January</option>
+      <option value="02">February</option>
+      <option value="03">March</option>
+      <option value="04">April</option>
+      <option value="05">May</option>
+      <option value="06">June</option>
+      <option value="07">July</option>
+      <option value="08">August</option>
+      <option value="09">September</option>
+      <option value="10">October</option>
+      <option value="11">November</option>
+      <option value="12">December</option>
+    </select>
+
+    <h3>Filter</h3>
+    <input type="text" id="filter-input" placeholder="Search by category or description">
+
+    <!-- Synced Expenses -->
+    <h3>Your Expenses</h3>
+    <p id="total-expense">Total: $0.00</p>
+
+    <button onclick="toggleManageMode()">Manage Expenses ✏️</button>
+    <ul id="synced-expenses">
+      {% for expense in expenses %}
+        <li>{{ expense.date }} - ${{ expense.amount }} - {{ expense.category }} - {{ expense.description }} ✅ Synced</li>
+      {% else %}
+        <li>No expenses yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    const db = new PouchDB('local-expenses');
+    const form = document.getElementById('offline-form');
+    const unsyncedList = document.getElementById('unsynced-list');
+    const syncStatus = document.getElementById('sync-status');
+    const syncBtn = document.getElementById('sync-btn');
+    let manageMode = false;
+
+    function displayLocalExpenses() {
+      unsyncedList.innerHTML = '';
+      db.allDocs({ include_docs: true }).then(result => {
+        result.rows.forEach(row => {
+          const exp = row.doc;
+          const li = document.createElement('li');
+          li.textContent = `${exp.date} - $${exp.amount} - ${exp.category} - ${exp.description} 🔄 Not Synced`;
+          unsyncedList.appendChild(li);
+        });
+      });
+    }
+
+    async function refreshSyncedExpenses() {
+      const response = await fetch('/api/expenses');
+      const data = await response.json();
+      const list = document.getElementById('synced-expenses');
+      list.innerHTML = '';
+
+      if (data.length === 0) {
+        list.innerHTML = '<li>No expenses yet.</li>';
+        return;
+      }
+
+      data.forEach(exp => {
+        const li = document.createElement('li');
+        const [year, month] = exp.date.split('-');
+        li.setAttribute('data-year', year);
+        li.setAttribute('data-month', month);
+        li.innerHTML = `
+          ${exp.date} - $${exp.amount} - ${exp.category} - ${exp.description} ✅ Synced
+          <span class="action-buttons" style="display: none;">
+            <button onclick="editExpense(${exp.id}, '${exp.date}', ${exp.amount}, '${exp.category}', '${exp.description}')">✏️</button>
+            <button onclick="deleteExpense(${exp.id})">🗑️</button>
+          </span>
+        `;
+        list.appendChild(li);
+      });
+
+      updateActionButtonsVisibility();
+      applyCombinedFilters();
+    }
+
+    function updateActionButtonsVisibility() {
+      const buttons = document.querySelectorAll('.action-buttons');
+      buttons.forEach(span => {
+        span.style.display = manageMode ? 'inline' : 'none';
+      });
+    }
+
+    function toggleManageMode() {
+      manageMode = !manageMode;
+      updateActionButtonsVisibility();
+    }
+
+    const defaultSubmitHandler = async function (e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const expense = {
+        _id: new Date().toISOString(),
+        date: formData.get('date'),
+        amount: parseFloat(formData.get('amount')),
+        category: formData.get('category'),
+        description: formData.get('description'),
+        synced: false
+      };
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify([expense])
+          });
+
+          if (res.ok) {
+            await refreshSyncedExpenses();
+            form.reset();
+            syncStatus.textContent = "Expense synced directly!";
+            return;
+          }
+        } catch (err) {
+          console.warn("[WARN] Sync failed, storing locally.");
+        }
+      }
+
+      await db.put(expense);
+      form.reset();
+      displayLocalExpenses();
+    };
+
+    form.onsubmit = defaultSubmitHandler;
+
+    async function syncExpenses() {
+      const result = await db.allDocs({ include_docs: true });
+      const unsynced = result.rows.map(row => row.doc);
+
+      if (unsynced.length === 0) {
+        syncStatus.textContent = "Nothing to sync.";
+        return;
+      }
+
+      try {
+        const res = await fetch('/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(unsynced)
+        });
+
+        if (res.ok) {
+          for (let exp of unsynced) {
+            await db.remove(exp);
+          }
+          displayLocalExpenses();
+          await refreshSyncedExpenses();
+          syncStatus.textContent = "Synced successfully!";
+        } else {
+          syncStatus.textContent = "Server error while syncing.";
+        }
+      } catch (err) {
+        syncStatus.textContent = "Sync failed. Try again later.";
+      }
+    }
+
+    function editExpense(id, date, amount, category, description) {
+      form.date.value = date;
+      form.amount.value = amount;
+      form.category.value = category;
+      form.description.value = description;
+
+      form.onsubmit = async function (e) {
+        e.preventDefault();
+        const updated = {
+          date: form.date.value,
+          amount: parseFloat(form.amount.value),
+          category: form.category.value,
+          description: form.description.value
+        };
+
+        const res = await fetch(`/edit-expense/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+
+        if (res.ok) {
+          await refreshSyncedExpenses();
+          form.reset();
+          form.onsubmit = defaultSubmitHandler;
+        }
+      };
+    }
+
+    async function deleteExpense(id) {
+      if (!confirm('Delete this expense?')) return;
+      const res = await fetch(`/delete-expense/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        await refreshSyncedExpenses();
+      }
+    }
+
+    function toggleSyncButton() {
+      syncBtn.style.display = navigator.onLine ? 'none' : 'inline-block';
+    }
+
+    function applyCombinedFilters() {
+        const keyword = document.getElementById('filter-input').value.toLowerCase();
+        const selectedYear = document.getElementById('filter-year').value;
+        const selectedMonth = document.getElementById('filter-month').value;
+        const list = document.getElementById('synced-expenses');
+        const items = list.children;
+
+        let total = 0;
+
+        Array.from(items).forEach(li => {
+            const text = li.textContent.toLowerCase();
+            const itemYear = li.getAttribute('data-year');
+            const itemMonth = li.getAttribute('data-month');
+
+            const matchesText = text.includes(keyword);
+            const matchesYear = selectedYear === '' || selectedYear === itemYear;
+            const matchesMonth = selectedMonth === '' || selectedMonth === itemMonth;
+
+            const visible = matchesText && matchesYear && matchesMonth;
+            li.style.display = visible ? '' : 'none';
+
+            if (visible) {
+            // Try to extract the amount from the li text (assumes format: "$amount")
+            const match = li.textContent.match(/\$(\d+(\.\d{1,2})?)/);
+            if (match) {
+                total += parseFloat(match[1]);
+            }
+            }
+        });
+
+        document.getElementById('total-expense').textContent = `Total: $${total.toFixed(2)}`;
+        }
+
+
+    // Filter event listeners
+    document.getElementById('filter-input').addEventListener('input', applyCombinedFilters);
+    document.getElementById('filter-year').addEventListener('change', applyCombinedFilters);
+    document.getElementById('filter-month').addEventListener('change', applyCombinedFilters);
+
+    // Auto-sync
+    window.addEventListener('online', async () => {
+      console.log('[INFO] Online: syncing...');
+      await syncExpenses();
+      await refreshSyncedExpenses();
+      toggleSyncButton();
+    });
+
+    window.addEventListener('offline', toggleSyncButton);
+    window.addEventListener('load', () => {
+      displayLocalExpenses();
+      toggleSyncButton();
+      refreshSyncedExpenses();
+    });
+  </script>
+</body>
+</html>

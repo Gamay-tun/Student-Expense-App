@@ -137,7 +137,6 @@ def api_expenses():
     ])
 
 
-
 @app.route('/delete-expense/<int:expense_id>', methods=['DELETE'])
 @login_required
 def delete_expense(expense_id):

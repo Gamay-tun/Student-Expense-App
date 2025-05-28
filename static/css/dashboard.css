@@ -1,20 +1,179 @@
+/* dashboard.css - Modern Dark Theme with Glassmorphism and Proper Layout */
+
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: #f8f9fa;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #1e1b2e, #2a2157);
+  color: #ffffff;
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start; /* Use 'center' if you want vertical center */
+  padding-top: 2rem;
+  overflow-x: hidden;
+}
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  padding: 2rem;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5,
+.card-title, label, .form-label {
+  color: #e0e0e0 !important;
+}
+
+.text-muted {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Cards */
+.card, .glass-panel {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 1000px;
+  animation: fadeInUp 0.5s ease;
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(168, 85, 247, 0.3);
+}
+
+/* Form Controls */
+.form-control, .form-select {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #a855f7;
+  box-shadow: 0 0 0 2px #a855f7aa;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: none;
+  color: #fff;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  transform: scale(1.04);
+  box-shadow: 0 0 12px #a855f7aa;
+}
+
+.btn-outline-primary {
+  color: #a855f7;
+  border-color: #a855f7;
+}
+
+.btn-outline-primary:hover {
+  background: #a855f7;
+  color: #fff;
+  transform: scale(1.04);
+  box-shadow: 0 0 10px #a855f7aa;
+}
+
+.btn-outline-success {
+  color: #22c55e;
+  border-color: #22c55e;
+}
+
+.btn-outline-success:hover {
+  background: #22c55e;
+  color: white;
+  transform: scale(1.04);
+  box-shadow: 0 0 10px #22c55e99;
+}
+
+.btn-outline-secondary {
+  color: #ccc;
+  border-color: #ccc;
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(255,255,255,0.1);
+  transform: scale(1.03);
+}
+
+/* List Group Items */
+.list-group-item {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+  transition: all 0.2s ease-in-out;
+}
+
+.list-group-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+#total-expense {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Transcripts and Voice Text */
+#live-transcript {
+  color: #a855f7;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
   }
-  
-  .card-title {
-    font-weight: 600;
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .list-group-item {
-    background-color: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 0.25rem;
-    margin-bottom: 0.5rem;
+}
+
+/* Responsive Fixes */
+@media (max-width: 576px) {
+  .card {
+    padding: 1rem;
   }
-  
-  .action-buttons button {
-    margin-left: 0.5rem;
+
+  .btn {
+    font-size: 0.9rem;
   }
-  
+
+  .form-label {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .card {
+    padding: 1rem;
+    width: 100%;
+  }
+}

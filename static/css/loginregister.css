@@ -1,0 +1,92 @@
+/* login.css & register.css - Dark Glassmorphic Theme */
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #1e1b2e, #2a2157);
+    color: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    overflow: hidden;
+  }
+  
+  .glass-box {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1rem;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    padding: 2.5rem 2rem;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    animation: fadeInUp 0.6s ease-in-out both;
+  }
+  
+  h2 {
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .form-label {
+    color: #d6d6d6;
+  }
+  
+  .form-control {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  .btn-primary, .btn-success {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .btn-primary:hover, .btn-success:hover {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    transform: scale(1.03);
+    box-shadow: 0 0 12px #a855f7aa;
+  }
+  
+  .text-muted {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  
+  a.text-muted {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+  }
+  
+  a.text-muted:hover {
+    color: #a855f7;
+    text-decoration: underline;
+  }
+  
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  

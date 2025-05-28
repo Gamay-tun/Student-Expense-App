@@ -10,6 +10,8 @@
 
   <!-- PouchDB -->
   <script src="https://cdn.jsdelivr.net/npm/pouchdb@7.3.1/dist/pouchdb.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+
 </head>
 <body>
   <div class="container my-4">
@@ -43,6 +45,11 @@
     <button id="voice-button" type="button" class="btn btn-outline-primary w-100 mt-2">
         🎤 Hold to Speak
       </button>
+
+      <small class="form-text text-muted">
+        🎤 Say: "Amount 5.50, category food, description lunch with friends"
+      </small>
+      
       
       
 
@@ -91,6 +98,11 @@
     <button onclick="toggleManageMode()" class="btn btn-outline-secondary btn-sm mb-2">Manage Expenses ✏️</button>
     <ul id="synced-expenses" class="list-group"></ul>
   </div>
+  <div class="d-flex gap-2 mb-3">
+    <button id="download-btn" class="btn btn-outline-success btn-sm">⬇️ Download CSV</button>
+    <button id="share-btn" class="btn btn-outline-primary btn-sm">📤 Share My Expenses</button>
+  </div>
+  
 
 
 
@@ -362,15 +374,20 @@
   let isRecognizing = false;
 
   const voiceBtn = document.getElementById('voice-button');
+  const transcriptDisplay = document.createElement('p');
+  transcriptDisplay.className = "text-muted mt-2";
+  transcriptDisplay.innerHTML = `📝 Heard: <span id="live-transcript">...</span>`;
+  voiceBtn.parentNode.insertBefore(transcriptDisplay, voiceBtn.nextSibling);
 
   if ('webkitSpeechRecognition' in window) {
     recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.interimResults = true;  // ✅ Enables faster parsing
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       console.log("[INFO] Voice recognition started");
+      document.getElementById('live-transcript').textContent = '';
     };
 
     recognition.onresult = function(event) {
@@ -383,20 +400,23 @@
 
       combinedTranscript = combinedTranscript.trim().toLowerCase();
       console.log("[VOICE INPUT] Live transcript:", combinedTranscript);
+      document.getElementById('live-transcript').textContent = combinedTranscript;
 
-      // Live-fill description
-      document.querySelector('input[name="description"]').value = combinedTranscript;
+      // Match structured keywords
+      const amountMatch = combinedTranscript.match(/amount\s+(\d+(\.\d+)?)/);
+      const categoryMatch = combinedTranscript.match(/category\s+([a-z]+)/);
+      const descriptionMatch = combinedTranscript.match(/description\s+(.+)/);
 
-      // Live-fill amount (any number)
-      const amountMatch = combinedTranscript.match(/\d+(\.\d+)?/);
       if (amountMatch) {
-        document.querySelector('input[name="amount"]').value = amountMatch[0];
+        document.querySelector('input[name="amount"]').value = amountMatch[1];
       }
 
-      // Live-fill category (after "on ...")
-      const categoryMatch = combinedTranscript.match(/on\s+([a-z]+)/);
       if (categoryMatch) {
         document.querySelector('input[name="category"]').value = categoryMatch[1];
+      }
+
+      if (descriptionMatch) {
+        document.querySelector('input[name="description"]').value = descriptionMatch[1];
       }
     };
 
@@ -410,7 +430,7 @@
       voiceBtn.textContent = '🎤 Hold to Speak';
     };
   } else {
-    alert("Your browser doesn't support voice input.");
+    alert("Sorry, your browser doesn't support voice input.");
   }
 
   // Push-to-talk bindings
@@ -438,7 +458,85 @@
       console.log("[DEBUG] Manual stop triggered");
     }
   }
+  // CSV Download
+  document.getElementById('download-btn').addEventListener('click', async () => {
+    const res = await fetch('/api/expenses');
+    const data = await res.json();
+
+    if (!data.length) {
+      alert("No expenses to download.");
+      return;
+    }
+
+    let csvContent = "Date,Amount,Category,Description\n";
+    data.forEach(row => {
+      // Escape commas and quotes properly
+      const line = `"${row.date}","${row.amount}","${row.category.replace(/"/g, '""')}","${row.description.replace(/"/g, '""')}"\n`;
+      csvContent += line;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'my_expenses.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+
+
+document.getElementById('share-btn').addEventListener('click', async () => {
+  const res = await fetch('/api/expenses');
+  const data = await res.json();
+
+  if (!data.length) {
+    alert("No expenses to share.");
+    return;
+  }
+
+  let text = "📊 My Recent Expenses:\n\n";
+  data.forEach(row => {
+    text += `📅 ${row.date} | 💵 $${row.amount} | 🏷️ ${row.category} | 📝 ${row.description}\n`;
+  });
+
+  // ✅ Use Web Share API if available
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "My Expenses",
+        text: text
+      });
+    } catch (err) {
+      alert("Sharing cancelled.");
+    }
+  } else {
+    // ⛔ Fallback: show options to copy/share
+    const encoded = encodeURIComponent(text);
+    const shareMenu = `
+      <p>Share using:</p>
+      <ul>
+        <li><a href="mailto:?subject=My Expenses Report&body=${encoded}" target="_blank">📧 Email</a></li>
+        <li><a href="https://wa.me/?text=${encoded}" target="_blank">🟢 WhatsApp</a></li>
+        <li><a href="https://t.me/share/url?url=${encoded}" target="_blank">🔵 Telegram</a></li>
+        <li><button onclick="navigator.clipboard.writeText(decodeURIComponent('${encoded}')); alert('Copied!')">📋 Copy to Clipboard</button></li>
+      </ul>
+    `;
+    const popup = document.createElement('div');
+    popup.innerHTML = shareMenu;
+    popup.style.position = 'fixed';
+    popup.style.bottom = '20px';
+    popup.style.right = '20px';
+    popup.style.padding = '1rem';
+    popup.style.background = '#fff';
+    popup.style.border = '1px solid #ccc';
+    popup.style.zIndex = 9999;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 15000); // Auto-dismiss
+  }
+});
 </script>
+
 
   
 

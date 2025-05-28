@@ -8,15 +8,28 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/loginregister.css') }}">
 </head>
 <body>
+  {% if error %}
+  <div class="error-popup">
+    <div class="alert alert-danger text-center" role="alert">
+      {{ error }}
+      <button onclick="location.reload()" class="btn btn-sm btn-light ms-3">Try Again</button>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="glass-box">
     <h2>Login</h2>
-    <form method="POST" action="/login">
-      <input type="text" name="username" class="form-control" placeholder="Username" required>
-      <input type="password" name="password" class="form-control" placeholder="Password" required>
-      <button type="submit" class="btn btn-primary">Login</button>
+    <form method="post">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control" placeholder="Enter username" required>
+
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" placeholder="Enter password" required>
+
+      <button type="submit" class="btn btn-primary mt-2">Login</button>
     </form>
-    <p style="color: #ffffff;">Don't have an account?
-      <a href="/register" class="link-info">Register here</a></p>
+    <p class="text-muted mt-3">Don't have an account? <a href="/register" class="text-muted">Register here</a></p>
   </div>
 </body>
+
 </html>

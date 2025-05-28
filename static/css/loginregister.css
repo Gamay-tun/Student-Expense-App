@@ -35,6 +35,9 @@ body {
   .form-label {
     color: #d6d6d6;
   }
+
+
+  
   
   .form-control {
     background-color: rgba(255, 255, 255, 0.08);
@@ -88,5 +91,26 @@ body {
       opacity: 1;
       transform: translateY(0);
     }
+  }
+  
+
+  .error-popup {
+    position: absolute;
+    top: 30px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    z-index: 9999;
+  }
+  
+  .alert {
+    max-width: 400px;
+    width: 90%;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid #ff4d6d;
+    color: #ff8fa3;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   
